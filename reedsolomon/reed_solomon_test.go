@@ -6,7 +6,7 @@ package reedsolomon
 import (
 	"testing"
 
-	bitset "github.com/skip2/go-qrcode/bitset"
+	bitset "github.com/Z-M-Huang/go-qrcode/bitset"
 )
 
 func TestGeneratorPoly(t *testing.T) {
