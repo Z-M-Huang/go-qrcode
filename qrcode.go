@@ -53,6 +53,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"io"
 	"io/ioutil"
@@ -61,6 +62,7 @@ import (
 
 	bitset "github.com/Z-M-Huang/go-qrcode/bitset"
 	reedsolomon "github.com/Z-M-Huang/go-qrcode/reedsolomon"
+	"github.com/nfnt/resize"
 )
 
 // Encode a QR Code and return a raw PNG image.
@@ -329,6 +331,39 @@ func (q *QRCode) PNG(size int) ([]byte, error) {
 
 	var b bytes.Buffer
 	err := encoder.Encode(&b, img)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+// PNGWithLogo returns the QR Code with Logo as PNG image.
+func (q *QRCode) PNGWithLogo(logo image.Image, qrCodeSize int) ([]byte, error) {
+	img := q.Image(qrCodeSize)
+	logoSize := uint(20)
+	switch q.Level {
+	case Low:
+		logoSize = uint(0.07 * float32(qrCodeSize))
+	case Medium:
+		logoSize = uint(0.15 * float32(qrCodeSize))
+	case High:
+		logoSize = uint(0.25 * float32(qrCodeSize))
+	case Highest:
+		logoSize = uint(0.3 * float32(qrCodeSize))
+	}
+	logoImg := resize.Resize(logoSize, logoSize, logo, resize.Lanczos2)
+	logoStartingPoint := (qrCodeSize - int(logoSize)) / 2 * -1
+
+	rgba := image.NewRGBA(img.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+	draw.Draw(rgba, rgba.Bounds(), logoImg, image.Point{logoStartingPoint, logoStartingPoint}, draw.Over)
+
+	encoder := png.Encoder{CompressionLevel: png.BestCompression}
+
+	var b bytes.Buffer
+	err := encoder.Encode(&b, rgba)
 
 	if err != nil {
 		return nil, err

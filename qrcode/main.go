@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"os"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 )
 
 func main() {
-	outFile := flag.String("o", "", "out PNG file prefix, empty for stdout")
+	outFile := flag.String("o", "output.png", "out PNG file prefix, empty for stdout")
 	size := flag.Int("s", 256, "image size (pixel)")
 	textArt := flag.Bool("t", false, "print as text-art on stdout")
 	negative := flag.Bool("i", false, "invert black and white")
@@ -67,8 +68,12 @@ Usage:
 		q.ForegroundColor, q.BackgroundColor = q.BackgroundColor, q.ForegroundColor
 	}
 
+	logoImg, _ := os.Open("google.png")
+	defer logoImg.Close()
+	logo, _, _ := image.Decode(logoImg)
+
 	var png []byte
-	png, err = q.PNG(*size)
+	png, err = q.PNGWithLogo(logo, *size)
 	checkError(err)
 
 	if *outFile == "" {
