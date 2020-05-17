@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	outFile := flag.String("o", "", "out PNG file prefix, empty for stdout")
+	outFile := flag.String("o", "out", "out PNG file prefix, empty for default out.png")
 	size := flag.Int("s", 256, "image size (pixel)")
 	textArt := flag.Bool("t", false, "print as text-art on stdout")
 	negative := flag.Bool("i", false, "invert black and white")
