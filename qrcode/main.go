@@ -66,15 +66,11 @@ Usage:
 	png, err = q.PNG(*size)
 	checkError(err)
 
-	if *outFile == "" {
-		os.Stdout.Write(png)
-	} else {
-		var fh *os.File
-		fh, err = os.Create(*outFile + ".png")
-		checkError(err)
-		defer fh.Close()
-		fh.Write(png)
-	}
+	var fh *os.File
+	fh, err = os.Create(*outFile + ".png")
+	checkError(err)
+	defer fh.Close()
+	fh.Write(png)
 }
 
 func checkError(err error) {
