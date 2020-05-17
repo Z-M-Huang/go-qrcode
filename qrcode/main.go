@@ -4,83 +4,46 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"image"
 	"os"
-	"strings"
 
 	qrcode "github.com/Z-M-Huang/go-qrcode"
 )
 
 func main() {
-	outFile := flag.String("o", "output.png", "out PNG file prefix, empty for stdout")
-	size := flag.Int("s", 256, "image size (pixel)")
-	textArt := flag.Bool("t", false, "print as text-art on stdout")
-	negative := flag.Bool("i", false, "invert black and white")
-	disableBorder := flag.Bool("d", false, "disable QR Code border")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `qrcode -- QR Code encoder in Go
-https://github.com/Z-M-Huang/go-qrcode
-
-Flags:
-`)
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, `
-Usage:
-  1. Arguments except for flags are joined by " " and used to generate QR code.
-     Default output is STDOUT, pipe to imagemagick command "display" to display
-     on any X server.
-
-       qrcode hello word | display
-
-  2. Save to file if "display" not available:
-
-       qrcode "homepage: https://github.com/Z-M-Huang/go-qrcode" > out.png
-
-`)
-	}
-	flag.Parse()
-
-	if len(flag.Args()) == 0 {
-		flag.Usage()
-		checkError(fmt.Errorf("Error: no content given"))
-	}
-
-	content := strings.Join(flag.Args(), " ")
-
-	var err error
-	var q *qrcode.QRCode
-	q, err = qrcode.New(content, qrcode.Highest)
-	checkError(err)
-
-	if *disableBorder {
-		q.DisableBorder = true
-	}
-
-	if *textArt {
-		art := q.ToString(*negative)
-		fmt.Println(art)
-		return
-	}
-
-	if *negative {
-		q.ForegroundColor, q.BackgroundColor = q.BackgroundColor, q.ForegroundColor
-	}
+	outFile := "output.png"
+	size := 256
+	negative := false
+	disableBorder := false
+	content := "content to qrcode"
 
 	logoImg, _ := os.Open("google.png")
 	defer logoImg.Close()
 	logo, _, _ := image.Decode(logoImg)
 
-	var png []byte
-	png, err = q.PNGWithLogo(logo, *size)
+	var err error
+	var q *qrcode.QRCode
+	q, err = qrcode.NewWithLogo(content, qrcode.Highest, logo)
 	checkError(err)
 
-	if *outFile == "" {
+	if disableBorder {
+		q.DisableBorder = true
+	}
+
+	if negative {
+		q.ForegroundColor, q.BackgroundColor = q.BackgroundColor, q.ForegroundColor
+	}
+
+	var png []byte
+	png, err = q.PNG(size)
+	checkError(err)
+
+	if outFile == "" {
 		os.Stdout.Write(png)
 	} else {
 		var fh *os.File
-		fh, err = os.Create(*outFile + ".png")
+		fh, err = os.Create(outFile + ".png")
 		checkError(err)
 		defer fh.Close()
 		fh.Write(png)

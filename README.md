@@ -2,7 +2,7 @@
 
 <img src='https://skip.org/img/nyancat-youtube-qr.png' align='right'>
 
-Package qrcode implements a QR Code encoder. [![Build Status](https://travis-ci.org/skip2/go-qrcode.svg?branch=master)](https://travis-ci.org/skip2/go-qrcode)
+Package qrcode implements a QR Code encoder. [![Build Status](https://travis-ci.com/Z-M-Huang/go-qrcode.svg?branch=master)](https://travis-ci.com/Z-M-Huang/go-qrcode)
 
 A QR Code is a matrix (two-dimensional) barcode. Arbitrary content may be encoded, with URLs being a popular choice :)
 
@@ -30,6 +30,19 @@ A command-line tool `qrcode` will be built into `$GOPATH/bin/`.
 - **Create a 256x256 PNG image with custom colors and write to file:**
 
         err := qrcode.WriteColorFile("https://example.org", qrcode.Medium, 256, color.Black, color.White, "qr.png")
+        
+- **Create a 256x256 PNG image with logo:**
+	logoImg, _ := os.Open("google.png")
+	defer logoImg.Close()
+	logo, _, _ := image.Decode(logoImg)
+        
+	var q *qrcode.QRCode
+	q, _ = qrcode.NewWithLogo(content, qrcode.Highest, logo)
+
+	var fh *os.File
+	fh, _ = os.Create(outFile + ".png")
+	defer fh.Close()
+	fh.Write(png)
 
 All examples use the qrcode.Medium error Recovery Level and create a fixed 256x256px size QR Code. The last function creates a white on black instead of black on white QR Code.
 
