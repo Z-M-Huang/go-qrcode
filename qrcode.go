@@ -53,6 +53,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"image/color/palette"
 	"image/draw"
 	"image/png"
 	"io"
@@ -139,9 +140,7 @@ type QRCode struct {
 
 	LogoImage       image.Image
 	BackgroundImage image.Image
-	//BackgroundImageOpacity value between 0(transparent) and 255(opaque)
-	BackgroundImageOpacity uint8
-	IsBackgroundGif        bool
+	IsBackgroundGif bool
 
 	// Disable the QR Code border.
 	DisableBorder bool
@@ -251,16 +250,6 @@ func newWithForcedVersion(content string, version int, level RecoveryLevel) (*QR
 	return q, nil
 }
 
-// NewWithLogo QRCode with logo in center
-func NewWithLogo(content string, level RecoveryLevel, logoImg image.Image) (*QRCode, error) {
-	qrCode, err := New(content, level)
-	if err != nil {
-		return nil, err
-	}
-	qrCode.LogoImage = logoImg
-	return qrCode, nil
-}
-
 // Bitmap returns the QR Code as a 2D array of 1-bit pixels.
 //
 // bitmap[y][x] is true if the pixel at (x, y) is set.
@@ -309,8 +298,15 @@ func (q *QRCode) Image(size int) image.Image {
 	rect := image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{size, size}}
 
 	// Saves a few bytes to have them in this order
-	p := color.Palette([]color.Color{q.BackgroundColor, q.ForegroundColor})
-	img := image.NewPaletted(rect, p)
+	var img *image.Paletted
+	if q.BackgroundImage == nil {
+		p := color.Palette([]color.Color{q.BackgroundColor, q.ForegroundColor})
+		img = image.NewPaletted(rect, p)
+	} else {
+		backgroundImage := resize.Resize(uint(size), uint(size), q.BackgroundImage, resize.Lanczos3)
+		img = image.NewPaletted(rect, palette.Plan9)
+		draw.Draw(img, rect, backgroundImage, rect.Min, draw.Over)
+	}
 	fgClr := uint8(img.Palette.Index(q.ForegroundColor))
 
 	// QR code bitmap.
@@ -343,12 +339,12 @@ func (q *QRCode) Image(size int) image.Image {
 func (q *QRCode) PNG(size int) ([]byte, error) {
 	img := q.Image(size)
 	rgba := image.NewRGBA(img.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 
-	if q.LogoImage != nil || q.BackgroundImage != nil {
-		if q.LogoImage != nil {
-			q.addLogo(rgba, uint(size))
-		}
+	if q.LogoImage != nil {
+		draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+		q.addLogo(rgba, uint(size))
+	} else {
+		draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 	}
 
 	encoder := png.Encoder{CompressionLevel: png.BestCompression}
@@ -380,6 +376,11 @@ func (q *QRCode) addLogo(rgba *image.RGBA, qrCodeSize uint) {
 	logoStartingPoint := int(qrCodeSize-logoSize) / 2 * -1
 
 	draw.Draw(rgba, rgba.Bounds(), logoImg, image.Point{logoStartingPoint, logoStartingPoint}, draw.Over)
+}
+
+func (q *QRCode) addBackgroundImage(rgba *image.RGBA, qrCodeSize uint) {
+	backgroundImg := resize.Resize(qrCodeSize, qrCodeSize, q.BackgroundImage, resize.Lanczos3)
+	draw.Draw(rgba, rgba.Bounds(), backgroundImg, image.Point{0, 0}, draw.Src)
 }
 
 // Write writes the QR Code as a PNG image to io.Writer.

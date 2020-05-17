@@ -37,7 +37,22 @@ A command-line tool `qrcode` will be built into `$GOPATH/bin/`.
 	logo, _, _ := image.Decode(logoImg)
         
 	var q *qrcode.QRCode
-	q, _ = qrcode.NewWithLogo(content, qrcode.Highest, logo)
+	q, _ = qrcode.New(content, qrcode.Highest)
+        q.LogoImage = logo
+
+	var fh *os.File
+	fh, _ = os.Create(outFile + ".png")
+	defer fh.Close()
+	fh.Write(png)
+
+- **Create a 256x256 PNG image with background image:**
+	logoImg, _ := os.Open("google.png")
+	defer logoImg.Close()
+	logo, _, _ := image.Decode(logoImg)
+        
+	var q *qrcode.QRCode
+	q, _ = qrcode.New(content, qrcode.Highest)
+        q.BackgroundImage = logo
 
 	var fh *os.File
 	fh, _ = os.Create(outFile + ".png")
@@ -45,14 +60,6 @@ A command-line tool `qrcode` will be built into `$GOPATH/bin/`.
 	fh.Write(png)
 
 All examples use the qrcode.Medium error Recovery Level and create a fixed 256x256px size QR Code. The last function creates a white on black instead of black on white QR Code.
-
-## Documentation
-
-[![godoc](https://godoc.org/github.com/Z-M-Huang/go-qrcode?status.png)](https://godoc.org/github.com/Z-M-Huang/go-qrcode)
-
-## Demoapp
-
-[http://go-qrcode.appspot.com](http://go-qrcode.appspot.com)
 
 ## CLI
 
