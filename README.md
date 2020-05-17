@@ -104,3 +104,6 @@ If you know what you're doing, and don't want a border, see https://gist.github.
 - [http://en.wikipedia.org/wiki/QR_code](http://en.wikipedia.org/wiki/QR_code)
 - [ISO/IEC 18004:2006](http://www.iso.org/iso/catalogue_detail.htm?csnumber=43655) - Main QR Code specification (approx CHF 198,00)<br>
 - [https://github.com/qpliu/qrencode-go/](https://github.com/qpliu/qrencode-go/) - alternative Go QR encoding library based on [ZXing](https://github.com/zxing/zxing)
+
+## Thanks
+This is a forked version from https://github.com/skip2/go-qrcode. Special thanks to all the devs for the incredible work you've done!
