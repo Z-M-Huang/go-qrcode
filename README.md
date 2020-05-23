@@ -32,32 +32,47 @@ A command-line tool `qrcode` will be built into `$GOPATH/bin/`.
         err := qrcode.WriteColorFile("https://example.org", qrcode.Medium, 256, color.Black, color.White, "qr.png")
         
 - **Create a 256x256 PNG image with logo:**
-	logoImg, _ := os.Open("google.png")
-	defer logoImg.Close()
-	logo, _, _ := image.Decode(logoImg)
-        
-	var q *qrcode.QRCode
-	q, _ = qrcode.New(content, qrcode.Highest)
-        q.LogoImage = logo
+				logoImg, _ := os.Open("google.png")
+				defer logoImg.Close()
+				logo, _, _ := image.Decode(logoImg)
+							
+				var q *qrcode.QRCode
+				q, _ = qrcode.New(content, qrcode.Highest)
+				png, _ := q.PNGWithLogo(256, logo)
 
-	var fh *os.File
-	fh, _ = os.Create(outFile + ".png")
-	defer fh.Close()
-	fh.Write(png)
+				var fh *os.File
+				fh, _ = os.Create(outFile + ".png")
+				defer fh.Close()
+				fh.Write(png)
 
 - **Create a 256x256 PNG image with background image:**
-	logoImg, _ := os.Open("google.png")
-	defer logoImg.Close()
-	logo, _, _ := image.Decode(logoImg)
-        
-	var q *qrcode.QRCode
-	q, _ = qrcode.New(content, qrcode.Highest)
-        q.BackgroundImage = logo
+				logoImg, _ := os.Open("google.png")
+				defer logoImg.Close()
+				logo, _, _ := image.Decode(logoImg)
+							
+				var q *qrcode.QRCode
+				q, _ = qrcode.New(content, qrcode.Highest)
+				q.BackgroundImage = logo
+				png, _ := q.PNG(256, logo)
 
-	var fh *os.File
-	fh, _ = os.Create(outFile + ".png")
-	defer fh.Close()
-	fh.Write(png)
+				var fh *os.File
+				fh, _ = os.Create(outFile + ".png")
+				defer fh.Close()
+				fh.Write(png)
+
+- **Create a 256x256 GIF image with Animated Logo GIF:**
+				logoGifImage, _ := os.Open("google.gif")
+				defer logoGifImage.Close()
+				logo, _:= gif.DecodeAll(logoGifImage)
+							
+				var q *qrcode.QRCode
+				q, _ = qrcode.New(content, qrcode.Highest)
+				gif, _ := q.GIFLogo(256, logo)
+
+				var fh *os.File
+				fh, _ = os.Create(outFile + ".gif")
+				defer fh.Close()
+				fh.Write(gif)
 
 All examples use the qrcode.Medium error Recovery Level and create a fixed 256x256px size QR Code. The last function creates a white on black instead of black on white QR Code.
 
