@@ -138,8 +138,7 @@ type QRCode struct {
 	ForegroundColor color.Color
 	BackgroundColor color.Color
 
-	LogoImage       []image.Image
-	BackgroundImage []image.Image
+	BackgroundImage image.Image
 	IsBackgroundGif bool
 
 	// Disable the QR Code border.
@@ -299,11 +298,11 @@ func (q *QRCode) Image(size int) image.Image {
 
 	// Saves a few bytes to have them in this order
 	var img *image.Paletted
-	if len(q.BackgroundImage) == 0 {
+	if q.BackgroundImage == nil {
 		p := color.Palette([]color.Color{q.BackgroundColor, q.ForegroundColor})
 		img = image.NewPaletted(rect, p)
 	} else {
-		backgroundImage := resize.Resize(uint(size), uint(size), q.BackgroundImage[0], resize.Lanczos3)
+		backgroundImage := resize.Resize(uint(size), uint(size), q.BackgroundImage, resize.Lanczos3)
 		img = image.NewPaletted(rect, palette.Plan9)
 		draw.Draw(img, rect, backgroundImage, rect.Min, draw.Over)
 	}
@@ -338,14 +337,44 @@ func (q *QRCode) Image(size int) image.Image {
 // variable sized image to be returned: See the documentation for Image().
 func (q *QRCode) PNG(size int) ([]byte, error) {
 	img := q.Image(size)
+
+	encoder := png.Encoder{CompressionLevel: png.BestCompression}
+
+	var b bytes.Buffer
+	err := encoder.Encode(&b, img)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+//PNGWithLogo generate QRCode  PNG with logo in center
+func (q *QRCode) PNGWithLogo(size int, logoImage image.Image) ([]byte, error) {
+	if logoImage == nil {
+		return nil, errors.New("Image cannot be nil")
+	}
+	img := q.Image(size)
 	rgba := image.NewRGBA(img.Bounds())
 
-	if q.LogoImage != nil {
-		draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
-		q.addLogo(rgba, uint(size))
-	} else {
-		draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+
+	logoSize := uint(size)
+	switch q.Level {
+	case Low:
+		logoSize = uint(0.07 * float32(size))
+	case Medium:
+		logoSize = uint(0.15 * float32(size))
+	case High:
+		logoSize = uint(0.25 * float32(size))
+	case Highest:
+		logoSize = uint(0.3 * float32(size))
 	}
+	logoImg := resize.Resize(logoSize, logoSize, logoImage, resize.Lanczos2)
+	logoStartingPoint := int(uint(size)-logoSize) / 2 * -1
+
+	draw.Draw(rgba, rgba.Bounds(), logoImg, image.Point{logoStartingPoint, logoStartingPoint}, draw.Over)
 
 	encoder := png.Encoder{CompressionLevel: png.BestCompression}
 
@@ -360,70 +389,44 @@ func (q *QRCode) PNG(size int) ([]byte, error) {
 }
 
 // GIFLogo returns the QR Code as a GIF image.
-func (q *QRCode) GIFLogo(size int, delay []int) ([]byte, error) {
-	if len(q.LogoImage) == 0 || len(delay) != len(q.LogoImage) {
+func (q *QRCode) GIFLogo(size int, logoGif *gif.GIF) ([]byte, error) {
+	if logoGif == nil {
+		return nil, errors.New("LogoGif cannot be nil")
+	}
+
+	if len(logoGif.Image) == 0 || len(logoGif.Delay) != len(logoGif.Image) {
 		return nil, errors.New("Invalid length of images and delays. These two params have to be greater than 0 and equal")
 	}
 	img := q.Image(size)
 	rgba := image.NewRGBA(img.Bounds())
 	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
-	b, err := q.addLogoGIF(rgba, uint(size), delay)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-// addLogo adds logo to image.
-func (q *QRCode) addLogo(rgba *image.RGBA, qrCodeSize uint) {
-	logoSize := uint(20)
-	switch q.Level {
-	case Low:
-		logoSize = uint(0.07 * float32(qrCodeSize))
-	case Medium:
-		logoSize = uint(0.15 * float32(qrCodeSize))
-	case High:
-		logoSize = uint(0.25 * float32(qrCodeSize))
-	case Highest:
-		logoSize = uint(0.3 * float32(qrCodeSize))
-	}
-	logoImg := resize.Resize(logoSize, logoSize, q.LogoImage[0], resize.Lanczos2)
-	logoStartingPoint := int(qrCodeSize-logoSize) / 2 * -1
-
-	draw.Draw(rgba, rgba.Bounds(), logoImg, image.Point{logoStartingPoint, logoStartingPoint}, draw.Over)
-}
-
-// addLogoGIF adds logos to image.
-func (q *QRCode) addLogoGIF(rgba *image.RGBA, qrCodeSize uint, delay []int) ([]byte, error) {
 
 	logoSize := uint(20)
 	switch q.Level {
 	case Low:
-		logoSize = uint(0.07 * float32(qrCodeSize))
+		logoSize = uint(0.07 * float32(size))
 	case Medium:
-		logoSize = uint(0.15 * float32(qrCodeSize))
+		logoSize = uint(0.15 * float32(size))
 	case High:
-		logoSize = uint(0.25 * float32(qrCodeSize))
+		logoSize = uint(0.25 * float32(size))
 	case Highest:
-		logoSize = uint(0.3 * float32(qrCodeSize))
+		logoSize = uint(0.3 * float32(size))
 	}
-
-	logoStartingPoint := int(qrCodeSize-logoSize) / 2 * -1
 	outGif := &gif.GIF{}
-	for i := 0; i < len(delay); i++ {
-		logoImg := resize.Resize(logoSize, logoSize, q.LogoImage[i], resize.Lanczos2)
+	logoStartingPoint := int(uint(size)-logoSize) / 2 * -1
+	for i := 0; i < len(logoGif.Delay); i++ {
+		logoImg := resize.Resize(logoSize, logoSize, logoGif.Image[i], resize.Lanczos2)
 		palettedImage := image.NewPaletted(rgba.Bounds(), palette.Plan9)
 		draw.Draw(palettedImage, palettedImage.Rect, rgba, palettedImage.Rect.Min, draw.Src)
 		draw.Draw(palettedImage, rgba.Bounds(), logoImg, image.Point{logoStartingPoint, logoStartingPoint}, draw.Over)
 		outGif.Image = append(outGif.Image, palettedImage)
-		outGif.Delay = append(outGif.Delay, delay[i])
+		outGif.Delay = append(outGif.Delay, logoGif.Delay[i])
 	}
 	var b bytes.Buffer
 	w := io.Writer(&b)
 	err := gif.EncodeAll(w, outGif)
 	if err != nil {
-		return nil, errors.New("failed to write file")
+		return nil, errors.New("failed to encode gif")
 	}
 	return b.Bytes(), nil
 }

@@ -1,5 +1,6 @@
 *.sw*
 *.png
+*.gif
 *.directory
 qrcode/qrcode
 .vscode
